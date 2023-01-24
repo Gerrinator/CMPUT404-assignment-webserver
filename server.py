@@ -1,7 +1,7 @@
 #  coding: utf-8 
-import socketserver
+import socketserver, os
 
-# Copyright 2013 Abram Hindle, Eddie Antonio Santos
+# Copyright 2013 Abram Hindle, Eddie Antonio Santos, Gerard van Genderen
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,8 +31,30 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        # print ("Got a request of: %s\n" % self.data)
+
+        dir_path = 'www'
+        encoder = 'utf-8'
+        ok_status = 'HTTP/1.1 200 OK'
+        not_allowed = 'HTTP/1.1 405 Not allowed'
+        css_type = 'text/css'
+        html_type = 'text/html'
+
+        data_read = self.data.decode(encoder).split(' ')
+        filename = data_read[1]
+
+        if filename == '/base.css':
+            file = open(os.path.abspath(dir_path) + filename)
+            data = file.read()
+            data_to_send = ok_status + "\r\n" + "Content-Type: " + css_type + "\r\n\r\n" + data
+            self.request.sendall(data_to_send.encode())
+
+        if filename == '/index.html':
+            file = open(os.path.abspath(dir_path) + filename)
+            data = file.read()
+            data_to_send = ok_status + "\r\n" + "Content-Type: " + html_type + "\r\n\r\n" + data
+            self.request.sendall(data_to_send.encode())
+
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
