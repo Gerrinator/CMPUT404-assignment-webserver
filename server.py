@@ -33,27 +33,91 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.data = self.request.recv(1024).strip()
         # print ("Got a request of: %s\n" % self.data)
 
-        dir_path = 'www'
+        path = os.path.abspath('www')
         encoder = 'utf-8'
-        ok_status = 'HTTP/1.1 200 OK'
-        not_allowed = 'HTTP/1.1 405 Not allowed'
-        css_type = 'text/css'
-        html_type = 'text/html'
+        http_header = 'HTTP/1.1 '
+        ok_status = '200 OK'
+        not_found = '404 NOT FOUND'
+        not_allowed = '405 Method Not Allowed'
+        redirected = '301 Moved Permanently'
 
         data_read = self.data.decode(encoder).split(' ')
-        filename = data_read[1]
+        # print(data_read)
+        request_method = data_read[0]
+        request_path_string = data_read[1]
+        # print(request_path_string)
+        request_path = request_path_string.split('/')
+        request_path.pop(0)
+        # print(request_path)
+        dest = ''
 
-        if filename == '/base.css':
-            file = open(os.path.abspath(dir_path) + filename)
-            data = file.read()
-            data_to_send = ok_status + "\r\n" + "Content-Type: " + css_type + "\r\n\r\n" + data
-            self.request.sendall(data_to_send.encode())
+        path_ok = True
 
-        if filename == '/index.html':
-            file = open(os.path.abspath(dir_path) + filename)
-            data = file.read()
-            data_to_send = ok_status + "\r\n" + "Content-Type: " + html_type + "\r\n\r\n" + data
-            self.request.sendall(data_to_send.encode())
+        if request_method  == 'GET':
+
+            for file in request_path:
+                if file == '..':
+                    # Very bad! throwing an error
+                    path_ok = False
+                    break
+
+                elif file == 'deep':
+                    path += '/deep'
+                    dest = 'deep'
+
+                elif file == '':
+                    path += '/'
+                    dest = ''
+
+                else:
+                    path += '/' + file
+                    dest = file
+
+            print(path)
+
+            if not os.path.exists(path):
+                path_ok = False
+
+            if path_ok:
+                if dest == 'deep':
+                    path += '/index.html'
+                    self.serve_html(http_header, path, redirected)
+
+                elif dest == 'index.html':
+                    self.serve_html(http_header, path, ok_status)
+
+                elif dest == 'base.css':
+                    self.serve_css(http_header, path, ok_status)
+
+                elif dest == '':
+                    path += 'index.html'
+                    self.serve_html(http_header, path, ok_status)
+
+            else:
+                self.error_not_found(http_header)
+
+        else:
+            self.error_bad_method(http_header)
+
+    def error_not_found(self, header):
+        data_to_send = header + '404 NOT FOUND' + "\r\n"
+        self.request.sendall(data_to_send.encode())
+
+    def error_bad_method(self, header):
+        data_to_send = header + '405 Method Not Allowed' + "\r\n"
+        self.request.sendall(data_to_send.encode())
+
+    def serve_css(self, header, path, code):
+        file = open(path)
+        data = file.read()
+        data_to_send = header + code + "\r\n" + "Content-Type: " + 'text/css' + "\r\n\r\n" + data
+        self.request.sendall(data_to_send.encode())
+
+    def serve_html(self, header, path, code):
+        file = open(path)
+        data = file.read()
+        data_to_send = header + code + "\r\n" + "Content-Type: " + 'text/html' + "\r\n\r\n" + data
+        self.request.sendall(data_to_send.encode())
 
 
 if __name__ == "__main__":
