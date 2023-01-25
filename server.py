@@ -50,6 +50,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         request_path.pop(0)
         # print(request_path)
         dest = ''
+        file_type = ''
 
         path_ok = True
 
@@ -73,7 +74,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     path += '/' + file
                     dest = file
 
-            print(path)
+            # print(path)
+            # print(dest)
 
             if not os.path.exists(path):
                 path_ok = False
@@ -87,6 +89,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     self.serve_html(http_header, path, ok_status)
 
                 elif dest == 'base.css':
+                    self.serve_css(http_header, path, ok_status)
+
+                elif dest == 'deep.css':
                     self.serve_css(http_header, path, ok_status)
 
                 elif dest == '':
