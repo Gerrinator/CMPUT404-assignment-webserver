@@ -40,22 +40,16 @@ class MyWebServer(socketserver.BaseRequestHandler):
         encoder = 'utf-8'
         http_header = 'HTTP/1.1 '
         ok_status = '200 OK'
-        not_found = '404 NOT FOUND'
-        not_allowed = '405 Method Not Allowed'
         redirected = '301 Moved Permanently'
 
+        base_url = "http://127.0.0.1:8080"
+
         data_read = self.data.decode(encoder).split(' ')
-        # print(data_read)
         request_method = data_read[0]
         request_path_string = data_read[1]
-        # print(request_path_string)
         request_path = request_path_string.split('/')
-        print(request_path)
         request_path.pop(0)
-        print(request_path)
-        # print(request_path)
         dest = ''
-        file_type = ''
 
         path_ok = True
 
@@ -99,9 +93,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                         self.serve_html(http_header, fullpath, ok_status)
                     else:
                         path += '/'
-                        base_url = "http://%s:%d" % (HOST, PORT)
-                        data_to_send = http_header + redirected + "\r\n" + "Location: " + base_url + path + "\r\n"
-                        print(data_to_send)
+                        data_to_send = http_header + redirected + "\r\n" + "Location: " + base_url + path + "\r\n\r\n"
                         self.request.sendall(data_to_send.encode())
 
                 elif file_type == 'html':
@@ -117,11 +109,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.error_bad_method(http_header)
 
     def error_not_found(self, header):
-        data_to_send = header + '404 NOT FOUND' + "\r\n"
+        data_to_send = header + '404 NOT FOUND' + "\r\n\r\n"
         self.request.sendall(data_to_send.encode())
 
     def error_bad_method(self, header):
-        data_to_send = header + '405 Method Not Allowed' + "\r\n"
+        data_to_send = header + '405 Method Not Allowed' + "\r\n\r\n"
         self.request.sendall(data_to_send.encode())
 
     def serve_css(self, header, path, code):
