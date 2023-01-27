@@ -1,7 +1,10 @@
 #  coding: utf-8 
 import socketserver, os
 
-# Copyright 2013 Abram Hindle, Eddie Antonio Santos, Gerard van Genderen
+import requests
+
+
+# Copyright 2023 Abram Hindle, Eddie Antonio Santos, Gerard van Genderen
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,9 +34,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        # print ("Got a request of: %s\n" % self.data)
+        # print("Got a request of: %s\n" % self.data)
 
-        path = os.path.abspath('www')
+        path = ''
         encoder = 'utf-8'
         http_header = 'HTTP/1.1 '
         ok_status = '200 OK'
@@ -47,24 +50,22 @@ class MyWebServer(socketserver.BaseRequestHandler):
         request_path_string = data_read[1]
         # print(request_path_string)
         request_path = request_path_string.split('/')
+        print(request_path)
         request_path.pop(0)
+        print(request_path)
         # print(request_path)
         dest = ''
         file_type = ''
 
         path_ok = True
 
-        if request_method  == 'GET':
+        if request_method == 'GET':
 
             for file in request_path:
                 if file == '..':
                     # Very bad! throwing an error
                     path_ok = False
                     break
-
-                elif file == 'deep':
-                    path += '/deep'
-                    dest = 'deep'
 
                 elif file == '':
                     path += '/'
@@ -74,29 +75,40 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     path += '/' + file
                     dest = file
 
+
             # print(path)
             # print(dest)
 
-            if not os.path.exists(path):
+            fullpath = os.path.abspath('www') + path
+            # print(fullpath)
+
+            if not os.path.exists(fullpath):
                 path_ok = False
 
+            if os.path.isfile(fullpath):
+                file_type = dest.split('.')[1]
+                # print(file_type)
+
+            else:
+                file_type = 'dir'
+
             if path_ok:
-                if dest == 'deep':
-                    path += '/index.html'
-                    self.serve_html(http_header, path, redirected)
+                if file_type == 'dir':
+                    if dest == '':
+                        fullpath += 'index.html'
+                        self.serve_html(http_header, fullpath, ok_status)
+                    else:
+                        path += '/'
+                        base_url = "http://%s:%d" % (HOST, PORT)
+                        data_to_send = http_header + redirected + "\r\n" + "Location: " + base_url + path + "\r\n"
+                        print(data_to_send)
+                        self.request.sendall(data_to_send.encode())
 
-                elif dest == 'index.html':
-                    self.serve_html(http_header, path, ok_status)
+                elif file_type == 'html':
+                    self.serve_html(http_header, fullpath, ok_status)
 
-                elif dest == 'base.css':
-                    self.serve_css(http_header, path, ok_status)
-
-                elif dest == 'deep.css':
-                    self.serve_css(http_header, path, ok_status)
-
-                elif dest == '':
-                    path += 'index.html'
-                    self.serve_html(http_header, path, ok_status)
+                elif file_type == 'css':
+                    self.serve_css(http_header, fullpath, ok_status)
 
             else:
                 self.error_not_found(http_header)
@@ -115,13 +127,14 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def serve_css(self, header, path, code):
         file = open(path)
         data = file.read()
-        data_to_send = header + code + "\r\n" + "Content-Type: " + 'text/css' + "\r\n\r\n" + data
+        data_to_send = header + code + "\r\n" + "Content-Type: text/css" + "\r\n\r\n" + data
         self.request.sendall(data_to_send.encode())
 
     def serve_html(self, header, path, code):
+        # print(path)
         file = open(path)
         data = file.read()
-        data_to_send = header + code + "\r\n" + "Content-Type: " + 'text/html' + "\r\n\r\n" + data
+        data_to_send = header + code + "\r\n" + "Content-Type: text/html" + "\r\n\r\n" + data
         self.request.sendall(data_to_send.encode())
 
 
