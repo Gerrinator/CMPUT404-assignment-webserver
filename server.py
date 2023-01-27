@@ -85,6 +85,10 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 elif file_type == 'css':
                     self.serve_css(http_header, fullpath, ok_status)
 
+                else:
+                    # If filetype is unknown to the server, just serve as application/octet-stream
+                    self.serve_unknown_filetype(http_header, fullpath, ok_status)
+
             else:
                 self.error_not_found(http_header)
 
@@ -110,6 +114,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
         file = open(path)
         data = file.read()
         data_to_send = header + code + "\r\n" + "Content-Type: text/html" + "\r\n\r\n" + data
+        self.request.sendall(data_to_send.encode())
+
+    def serve_unknown_filetype(self, header, path, code):
+        file = open(path)
+        data = file.read()
+        data_to_send = header + code + "\r\n" + "Content-Type: application/octet-stream" + "\r\n\r\n" + data
         self.request.sendall(data_to_send.encode())
 
 
