@@ -55,6 +55,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             fullpath = os.path.abspath('www') + path
 
             if path.find('..') != -1:
+                # Big no-no, return 404
                 path_ok = False
 
             if not os.path.exists(fullpath):
@@ -68,10 +69,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
             if path_ok:
                 if file_type == 'dir':
+                    # First check if the path has an ending slash
                     if last_char == '/':
                         fullpath += 'index.html'
                         self.serve_html(http_header, fullpath, ok_status)
                     else:
+                        # 301 if there is no slash
                         path += '/'
                         data_to_send = http_header + redirected + "\r\n" + "Location: " + base_url + path + "\r\n\r\n"
                         self.request.sendall(data_to_send.encode())
