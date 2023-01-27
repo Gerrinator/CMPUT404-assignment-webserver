@@ -1,8 +1,6 @@
 #  coding: utf-8 
 import socketserver, os
 
-import requests
-
 
 # Copyright 2023 Abram Hindle, Eddie Antonio Santos, Gerard van Genderen
 # 
@@ -36,7 +34,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.data = self.request.recv(1024).strip()
         # print("Got a request of: %s\n" % self.data)
 
-        path = ''
         encoder = 'utf-8'
         http_header = 'HTTP/1.1 '
         ok_status = '200 OK'
@@ -46,49 +43,32 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         data_read = self.data.decode(encoder).split(' ')
         request_method = data_read[0]
-        request_path_string = data_read[1]
-        request_path = request_path_string.split('/')
-        request_path.pop(0)
-        dest = ''
+        path = data_read[1]
+        # request_path = request_path_string.split('/')
+        # request_path.pop(0)
+        last_char = path[-1]
 
         path_ok = True
 
         if request_method == 'GET':
 
-            for file in request_path:
-                if file == '..':
-                    # Very bad! throwing an error
-                    path_ok = False
-                    break
-
-                elif file == '':
-                    path += '/'
-                    dest = ''
-
-                else:
-                    path += '/' + file
-                    dest = file
-
-
-            # print(path)
-            # print(dest)
-
             fullpath = os.path.abspath('www') + path
-            # print(fullpath)
+
+            if path.find('..') != -1:
+                path_ok = False
 
             if not os.path.exists(fullpath):
                 path_ok = False
 
             if os.path.isfile(fullpath):
-                file_type = dest.split('.')[1]
-                # print(file_type)
+                file_type = path.split('.')[1]
 
             else:
                 file_type = 'dir'
 
             if path_ok:
                 if file_type == 'dir':
-                    if dest == '':
+                    if last_char == '/':
                         fullpath += 'index.html'
                         self.serve_html(http_header, fullpath, ok_status)
                     else:
